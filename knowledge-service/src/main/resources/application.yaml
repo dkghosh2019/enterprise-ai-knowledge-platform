@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: knowledge-service
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: Knowledge Service
+    description: Enterprise AI document and knowledge management service
