@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: knowledge-service
+              uri: ${app.services.knowledge-url}
+              predicates:
+                - Path=/knowledge/**
+              filters:
+                - StripPrefix=1
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: API Gateway
+    description: Edge routing service for the Enterprise AI Knowledge Platform
+
+app:
+  services:
+    knowledge-url: ${KNOWLEDGE_SERVICE_URL:http://localhost:8081}
