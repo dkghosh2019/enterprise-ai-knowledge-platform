@@ -23,14 +23,31 @@
 - [x] Both health endpoints report `UP`
 - [x] Unknown Gateway route returns HTTP `404`
 
-## Planned milestones
-
 ### Milestone 2 - Identity and Security
 
-- Spring Security
-- OAuth2 resource server
-- JWT validation
-- Role-based authorization
+#### Identity Service foundation completed on feature branch
+
+- [x] Identity Service module on port `9000`
+- [x] Spring Authorization Server configuration
+- [x] OAuth2 client-credentials grant
+- [x] Configurable machine-client secret
+- [x] RSA-signed JWT access tokens
+- [x] `knowledge.read` scope
+- [x] Authorization Server metadata endpoint
+- [x] Public JSON Web Key Set endpoint
+- [x] Public Actuator health endpoint
+- [x] Integration tests for metadata, keys, health, valid tokens, and invalid credentials
+
+#### Remaining
+
+- [ ] Configure the API Gateway as an OAuth2 resource server
+- [ ] Validate JWT signature, issuer, expiry, and scopes at the Gateway
+- [ ] Configure the Knowledge Service as an OAuth2 resource server
+- [ ] Add scope-based endpoint authorization
+- [ ] Verify end-to-end authorized and unauthorized requests
+- [ ] Merge Milestone 2 from `develop` into `main`
+
+## Planned milestones
 
 ### Milestone 3 - Knowledge Persistence
 

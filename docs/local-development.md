@@ -14,9 +14,10 @@ From the repository root:
 mvn clean test
 ```
 
-The suite verifies both application contexts, gateway forwarding, public-prefix removal, and HTTP `404` handling for an unknown route.
+The suite verifies all application contexts, gateway forwarding, public-prefix
+removal, unknown-route handling, and Identity Service OAuth2 behavior.
 
-## Start both applications
+## Start the applications
 
 Start the Knowledge Service:
 
@@ -30,6 +31,12 @@ In another terminal, start the API Gateway:
 mvn -pl api-gateway spring-boot:run
 ```
 
+In a third terminal, start the Identity Service:
+
+```bash
+mvn -pl identity-service spring-boot:run
+```
+
 ## Manual verification
 
 ```text
@@ -37,6 +44,9 @@ GET http://localhost:8081/api/v1/platform/info
 GET http://localhost:8080/knowledge/api/v1/platform/info
 GET http://localhost:8080/actuator/health
 GET http://localhost:8081/actuator/health
+GET http://localhost:9000/actuator/health
+GET http://localhost:9000/.well-known/oauth-authorization-server
+GET http://localhost:9000/oauth2/jwks
 GET http://localhost:8080/unknown
 ```
 
@@ -55,3 +65,35 @@ PowerShell:
 ```powershell
 $env:KNOWLEDGE_SERVICE_URL="http://another-host:8081"
 ```
+
+## Request a development access token
+
+The local client ID is `platform-client`. The default development secret is
+`platform-secret`.
+
+```bash
+curl -u platform-client:platform-secret \
+  -X POST http://localhost:9000/oauth2/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&scope=knowledge.read"
+```
+
+The response contains an RSA-signed Bearer JWT with the `knowledge.read` scope
+and a lifetime of 900 seconds.
+
+Override the development secret before starting the Identity Service:
+
+Git Bash:
+
+```bash
+export PLATFORM_CLIENT_SECRET='{noop}replace-this-secret'
+```
+
+PowerShell:
+
+```powershell
+$env:PLATFORM_CLIENT_SECRET="{noop}replace-this-secret"
+```
+
+The `{noop}` prefix is accepted for local development only. Production
+credentials must use secure secret storage and an appropriate password encoder.
