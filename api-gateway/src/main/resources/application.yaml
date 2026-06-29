@@ -2,6 +2,13 @@ spring:
   application:
     name: api-gateway
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${IDENTITY_ISSUER:http://localhost:9000}
+          jwk-set-uri: ${IDENTITY_JWK_SET_URI:http://localhost:9000/oauth2/jwks}
+
   cloud:
     gateway:
       server:

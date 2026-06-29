@@ -2,9 +2,10 @@
 
 ## Current scope
 
-The Identity Service is the first feature in Milestone 2. It authenticates a
-machine client and issues signed access tokens. The API Gateway and Knowledge
-Service will validate and enforce those tokens in later feature branches.
+The Identity Service authenticates a machine client and issues signed access
+tokens. The API Gateway validates and enforces those tokens at the platform
+edge. The Knowledge Service will add its own validation in a later feature
+branch.
 
 ## OAuth2 client-credentials flow
 
@@ -17,9 +18,11 @@ sequenceDiagram
 
     Client->>Identity: POST /oauth2/token<br/>client ID, secret, and scope
     Identity-->>Client: RSA-signed JWT access token
-    Note over Gateway,Knowledge: JWT enforcement is the next Milestone 2 work
     Client->>Gateway: GET /knowledge/** with Bearer token
-    Gateway->>Knowledge: Forward authorized request
+    Gateway->>Identity: Retrieve public signing key from /oauth2/jwks
+    Identity-->>Gateway: RSA public key
+    Gateway->>Gateway: Validate signature, issuer, time, and scope
+    Gateway->>Knowledge: Forward authorized request and Bearer token
 ```
 
 The client-credentials grant represents service-to-service authentication.
@@ -85,6 +88,43 @@ A successful response contains:
 
 Invalid client credentials return HTTP `401`.
 
+## Gateway JWT validation
+
+The API Gateway is a reactive OAuth2 Resource Server. It validates:
+
+- the RSA signature using the Identity Service JSON Web Key Set
+- the `iss` claim against the configured issuer
+- the `exp` and `nbf` time claims
+- the `knowledge.read` scope
+
+Spring Security maps JWT scopes to authorities prefixed with `SCOPE_`.
+Therefore, `knowledge.read` becomes `SCOPE_knowledge.read`.
+
+The Gateway uses these environment-variable overrides:
+
+| Variable | Local default |
+|---|---|
+| `IDENTITY_ISSUER` | `http://localhost:9000` |
+| `IDENTITY_JWK_SET_URI` | `http://localhost:9000/oauth2/jwks` |
+
+Supplying the JWK Set URI directly allows the Gateway to start independently
+of the Identity Service. Supplying the issuer as well preserves issuer-claim
+validation.
+
+### Gateway authorization results
+
+| Request | Result |
+|---|---|
+| Valid JWT with `knowledge.read` | Forwarded to the Knowledge Service |
+| Missing Bearer token | HTTP `401` |
+| Malformed, expired, wrongly issued, or incorrectly signed JWT | HTTP `401` |
+| Valid JWT without `knowledge.read` | HTTP `403` |
+| Gateway health request without a token | HTTP `200` |
+| Unknown Gateway route | HTTP `404` |
+
+The Gateway forwards the original Authorization header. This prepares the
+platform for defense-in-depth validation inside the Knowledge Service.
+
 ## Automated verification
 
 The Identity Service integration suite verifies:
@@ -101,4 +141,20 @@ Run it from the repository root:
 
 ```bash
 mvn -pl identity-service -am test
+```
+
+The API Gateway integration suite creates real RSA keys and signed JWTs and
+verifies:
+
+- valid scoped-token routing and Bearer-token forwarding
+- missing-token rejection
+- insufficient-scope rejection
+- wrong-issuer rejection
+- expired-token rejection
+- invalid-signature rejection
+- public health access
+- unknown-route handling
+
+```bash
+mvn -pl api-gateway -am test
 ```
