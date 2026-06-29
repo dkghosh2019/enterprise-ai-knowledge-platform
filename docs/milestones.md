@@ -38,13 +38,21 @@
 - [x] Public Actuator health endpoint
 - [x] Integration tests for metadata, keys, health, valid tokens, and invalid credentials
 
+#### Gateway JWT security completed on feature branch
+
+- [x] Configure the API Gateway as a reactive OAuth2 Resource Server
+- [x] Validate JWT signature, issuer, expiration, and not-before claims
+- [x] Require `knowledge.read` for protected Gateway routes
+- [x] Preserve public health and unknown-route behavior
+- [x] Forward the Bearer token downstream
+- [x] Add real RSA/JWK integration tests
+- [x] Verify authorized and unauthorized requests end to end
+
 #### Remaining
 
-- [ ] Configure the API Gateway as an OAuth2 resource server
-- [ ] Validate JWT signature, issuer, expiry, and scopes at the Gateway
 - [ ] Configure the Knowledge Service as an OAuth2 resource server
 - [ ] Add scope-based endpoint authorization
-- [ ] Verify end-to-end authorized and unauthorized requests
+- [ ] Verify defense-in-depth authorization through both services
 - [ ] Merge Milestone 2 from `develop` into `main`
 
 ## Planned milestones

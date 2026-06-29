@@ -14,8 +14,9 @@ Milestone 1 established the platform foundation:
 
 Milestone 2 is introducing identity and security. Its first feature adds an
 `identity-service` on port `9000` that issues signed JWT access tokens through
-the OAuth2 client-credentials grant. Gateway authentication and Knowledge
-Service authorization will follow in separate feature branches.
+the OAuth2 client-credentials grant. The API Gateway now validates those tokens
+and requires `knowledge.read` for `/knowledge/**`. Knowledge Service
+authorization will follow in its own feature branch.
 
 ## Architecture
 
@@ -23,7 +24,7 @@ Service authorization will follow in separate feature branches.
 flowchart LR
     Client -->|"Client credentials"| Identity["Identity Service<br/>Spring Authorization Server :9000"]
     Identity -->|"Signed JWT"| Client
-    Client -->|":8080/knowledge/**"| Gateway["API Gateway<br/>Spring Cloud Gateway"]
+    Client -->|"Bearer JWT<br/>:8080/knowledge/**"| Gateway["API Gateway<br/>OAuth2 Resource Server"]
     Gateway -->|"StripPrefix=1"| Knowledge["Knowledge Service<br/>Spring Boot REST API"]
 ```
 
@@ -62,7 +63,8 @@ Run each application in a separate terminal.
 | Purpose | URL | Expected result |
 |---|---|---|
 | Knowledge Service directly | `http://localhost:8081/api/v1/platform/info` | Service information JSON |
-| Through API Gateway | `http://localhost:8080/knowledge/api/v1/platform/info` | Same service information JSON |
+| Through API Gateway | `http://localhost:8080/knowledge/api/v1/platform/info` | HTTP `200` with valid `knowledge.read` JWT |
+| Gateway route without/invalid token | `http://localhost:8080/knowledge/api/v1/platform/info` | HTTP `401` |
 | Gateway health | `http://localhost:8080/actuator/health` | `UP` |
 | Knowledge Service health | `http://localhost:8081/actuator/health` | `UP` |
 | Identity Service health | `http://localhost:9000/actuator/health` | `UP` |
@@ -80,4 +82,6 @@ Run each application in a separate terminal.
 
 ## Planned capabilities
 
-Future work will complete OAuth2/JWT enforcement and introduce PostgreSQL and PGVector, Kafka, Java-native AI agents, resilience patterns, Testcontainers, distributed tracing, metrics, and cloud deployment.
+Future work will add defense-in-depth authorization to the Knowledge Service
+and introduce PostgreSQL and PGVector, Kafka, Java-native AI agents, resilience
+patterns, Testcontainers, distributed tracing, metrics, and cloud deployment.

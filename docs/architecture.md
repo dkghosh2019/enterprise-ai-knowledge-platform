@@ -6,13 +6,14 @@
 flowchart LR
     Client["Machine Client"] -->|"POST /oauth2/token<br/>client credentials"| Identity["Identity Service :9000"]
     Identity -->|"Signed JWT<br/>scope: knowledge.read"| Client
-    Client -->|"GET /knowledge/api/v1/platform/info"| Gateway["API Gateway :8080"]
+    Client -->|"Bearer JWT<br/>GET /knowledge/api/v1/platform/info"| Gateway["API Gateway :8080<br/>OAuth2 Resource Server"]
     Gateway -->|"GET /api/v1/platform/info"| Knowledge["Knowledge Service :8081"]
 ```
 
-The Identity Service currently issues tokens, but the API Gateway and Knowledge
-Service do not enforce them yet. Token validation and endpoint authorization
-are intentionally isolated into later Milestone 2 feature branches.
+The Identity Service issues access tokens and publishes its RSA public key. The
+API Gateway validates each Bearer token before forwarding protected knowledge
+requests. The Knowledge Service does not validate tokens yet; that
+defense-in-depth layer is intentionally isolated into the next feature branch.
 
 ## API Gateway
 
@@ -23,6 +24,13 @@ The API Gateway is the public entry point for platform APIs.
 - Matches requests with the `/knowledge/**` path predicate.
 - Applies `StripPrefix=1` before forwarding.
 - Uses `KNOWLEDGE_SERVICE_URL` when supplied and otherwise uses `http://localhost:8081`.
+- Acts as a reactive OAuth2 Resource Server.
+- Uses `IDENTITY_ISSUER` and `IDENTITY_JWK_SET_URI` to validate JWTs.
+- Requires `SCOPE_knowledge.read` for `/knowledge/**`.
+- Validates the JWT signature, issuer, expiration, and not-before time.
+- Forwards the original Bearer token to the downstream service.
+- Keeps Actuator health and information endpoints public.
+- Leaves unmatched routes public so the Gateway can return HTTP `404`.
 
 ```text
 Incoming:  /knowledge/api/v1/platform/info
