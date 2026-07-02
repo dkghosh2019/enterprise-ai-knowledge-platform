@@ -48,11 +48,22 @@
 - [x] Add real RSA/JWK integration tests
 - [x] Verify authorized and unauthorized requests end to end
 
+#### Knowledge Service authorization completed on feature branch
+
+- [x] Configure the Knowledge Service as a servlet OAuth2 Resource Server
+- [x] Validate JWTs using configurable issuer and JWK Set locations
+- [x] Use stateless sessions and disable CSRF for the REST API
+- [x] Require `knowledge.read` for protected platform endpoints
+- [x] Preserve public health and information endpoints
+- [x] Deny unmatched application routes
+- [x] Add MockMvc security integration tests
+- [x] Add a pure unit test for `PlatformInfoService`
+- [x] Verify defense-in-depth authorization with a real issued token
+- [x] Run the complete 22-test platform suite successfully
+
 #### Remaining
 
-- [ ] Configure the Knowledge Service as an OAuth2 resource server
-- [ ] Add scope-based endpoint authorization
-- [ ] Verify defense-in-depth authorization through both services
+- [ ] Merge Knowledge Service authorization into `develop`
 - [ ] Merge Milestone 2 from `develop` into `main`
 
 ## Planned milestones
