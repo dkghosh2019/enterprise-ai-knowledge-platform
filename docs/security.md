@@ -4,8 +4,8 @@
 
 The Identity Service authenticates a machine client and issues signed access
 tokens. The API Gateway validates and enforces those tokens at the platform
-edge. The Knowledge Service will add its own validation in a later feature
-branch.
+edge. The Knowledge Service independently validates the forwarded token and
+enforces the required scope, providing defense in depth.
 
 ## OAuth2 client-credentials flow
 
@@ -23,6 +23,10 @@ sequenceDiagram
     Identity-->>Gateway: RSA public key
     Gateway->>Gateway: Validate signature, issuer, time, and scope
     Gateway->>Knowledge: Forward authorized request and Bearer token
+    Knowledge->>Identity: Retrieve public signing key from /oauth2/jwks
+    Identity-->>Knowledge: RSA public key
+    Knowledge->>Knowledge: Validate JWT and require knowledge.read
+    Knowledge-->>Client: Protected response
 ```
 
 The client-credentials grant represents service-to-service authentication.
@@ -122,8 +126,33 @@ validation.
 | Gateway health request without a token | HTTP `200` |
 | Unknown Gateway route | HTTP `404` |
 
-The Gateway forwards the original Authorization header. This prepares the
-platform for defense-in-depth validation inside the Knowledge Service.
+The Gateway forwards the original Authorization header so the Knowledge
+Service can perform its own validation.
+
+## Knowledge Service JWT validation
+
+The Knowledge Service is a servlet OAuth2 Resource Server. It uses the same
+identity configuration as the Gateway:
+
+| Variable | Local default |
+|---|---|
+| `IDENTITY_ISSUER` | `http://localhost:9000` |
+| `IDENTITY_JWK_SET_URI` | `http://localhost:9000/oauth2/jwks` |
+
+Its security policy is stateless and disables CSRF for the REST API.
+`/actuator/health/**` and `/actuator/info` remain public.
+`/api/v1/platform/**` requires `SCOPE_knowledge.read`, and unmatched
+application routes are denied.
+
+### Knowledge Service authorization results
+
+| Request | Result |
+|---|---|
+| Valid JWT with `knowledge.read` | HTTP `200` |
+| Missing Bearer token | HTTP `401` |
+| Malformed or otherwise invalid JWT | HTTP `401` |
+| Valid JWT without `knowledge.read` | HTTP `403` |
+| Health request without a token | HTTP `200` |
 
 ## Automated verification
 
@@ -157,4 +186,27 @@ verifies:
 
 ```bash
 mvn -pl api-gateway -am test
+```
+
+The Knowledge Service suite verifies:
+
+- Spring application startup
+- public health access
+- missing-token and malformed-token rejection
+- insufficient-scope rejection
+- successful access with `knowledge.read`
+- `PlatformInfoService` behavior in a pure unit test
+
+The MockMvc security tests use Spring Security test JWTs to verify policy. A
+manual end-to-end test with an Identity Service token verifies real signature
+and JWK-based validation.
+
+```bash
+mvn -pl knowledge-service -am test
+```
+
+The complete platform suite currently contains 22 passing tests:
+
+```bash
+mvn clean test
 ```

@@ -12,11 +12,11 @@ Milestone 1 established the platform foundation:
 - Spring Boot Actuator supplies health endpoints for both applications.
 - Automated tests verify startup, forwarding, prefix removal, and unknown routes.
 
-Milestone 2 is introducing identity and security. Its first feature adds an
-`identity-service` on port `9000` that issues signed JWT access tokens through
-the OAuth2 client-credentials grant. The API Gateway now validates those tokens
-and requires `knowledge.read` for `/knowledge/**`. Knowledge Service
-authorization will follow in its own feature branch.
+Milestone 2 establishes end-to-end identity and security. The
+`identity-service` on port `9000` issues signed JWT access tokens through the
+OAuth2 client-credentials grant. Both the API Gateway and Knowledge Service
+validate those tokens and require `knowledge.read` for protected knowledge
+requests, providing defense in depth.
 
 ## Architecture
 
@@ -25,7 +25,7 @@ flowchart LR
     Client -->|"Client credentials"| Identity["Identity Service<br/>Spring Authorization Server :9000"]
     Identity -->|"Signed JWT"| Client
     Client -->|"Bearer JWT<br/>:8080/knowledge/**"| Gateway["API Gateway<br/>OAuth2 Resource Server"]
-    Gateway -->|"StripPrefix=1"| Knowledge["Knowledge Service<br/>Spring Boot REST API"]
+    Gateway -->|"Bearer JWT + StripPrefix=1"| Knowledge["Knowledge Service<br/>OAuth2 Resource Server"]
 ```
 
 See [Architecture](docs/architecture.md) for details.
@@ -48,6 +48,9 @@ See [Architecture](docs/architecture.md) for details.
 mvn clean test
 ```
 
+The current platform test baseline is 22 passing tests across the three
+modules.
+
 ## Run locally
 
 ```bash
@@ -62,7 +65,8 @@ Run each application in a separate terminal.
 
 | Purpose | URL | Expected result |
 |---|---|---|
-| Knowledge Service directly | `http://localhost:8081/api/v1/platform/info` | Service information JSON |
+| Knowledge Service directly with valid JWT | `http://localhost:8081/api/v1/platform/info` | HTTP `200` and service information JSON |
+| Knowledge Service directly without/invalid token | `http://localhost:8081/api/v1/platform/info` | HTTP `401` |
 | Through API Gateway | `http://localhost:8080/knowledge/api/v1/platform/info` | HTTP `200` with valid `knowledge.read` JWT |
 | Gateway route without/invalid token | `http://localhost:8080/knowledge/api/v1/platform/info` | HTTP `401` |
 | Gateway health | `http://localhost:8080/actuator/health` | `UP` |
@@ -82,6 +86,6 @@ Run each application in a separate terminal.
 
 ## Planned capabilities
 
-Future work will add defense-in-depth authorization to the Knowledge Service
-and introduce PostgreSQL and PGVector, Kafka, Java-native AI agents, resilience
-patterns, Testcontainers, distributed tracing, metrics, and cloud deployment.
+Future work will introduce PostgreSQL and PGVector, Kafka, Java-native AI
+agents, resilience patterns, Testcontainers, distributed tracing, metrics, and
+cloud deployment.

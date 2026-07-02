@@ -7,13 +7,13 @@ flowchart LR
     Client["Machine Client"] -->|"POST /oauth2/token<br/>client credentials"| Identity["Identity Service :9000"]
     Identity -->|"Signed JWT<br/>scope: knowledge.read"| Client
     Client -->|"Bearer JWT<br/>GET /knowledge/api/v1/platform/info"| Gateway["API Gateway :8080<br/>OAuth2 Resource Server"]
-    Gateway -->|"GET /api/v1/platform/info"| Knowledge["Knowledge Service :8081"]
+    Gateway -->|"Bearer JWT<br/>GET /api/v1/platform/info"| Knowledge["Knowledge Service :8081<br/>OAuth2 Resource Server"]
 ```
 
 The Identity Service issues access tokens and publishes its RSA public key. The
 API Gateway validates each Bearer token before forwarding protected knowledge
-requests. The Knowledge Service does not validate tokens yet; that
-defense-in-depth layer is intentionally isolated into the next feature branch.
+requests. The Knowledge Service independently validates the forwarded token
+and enforces the same required scope, providing defense in depth.
 
 ## API Gateway
 
@@ -45,9 +45,15 @@ The Knowledge Service is the first backend microservice.
 - Uses Spring Boot Web MVC.
 - Exposes `GET /api/v1/platform/info`.
 - Uses controller, service, and DTO layers.
+- Acts as a servlet OAuth2 Resource Server.
+- Uses `IDENTITY_ISSUER` and `IDENTITY_JWK_SET_URI` to validate JWTs.
+- Requires `SCOPE_knowledge.read` for `/api/v1/platform/**`.
+- Uses stateless sessions with CSRF disabled.
+- Keeps Actuator health and information endpoints public.
+- Denies requests to unmatched application routes.
 
-Persistence, messaging, AI integration, and service-level authorization will
-be introduced incrementally in their own feature branches and milestones.
+Persistence, messaging, and AI integration will be introduced incrementally in
+their own feature branches and milestones.
 
 ## Identity Service
 

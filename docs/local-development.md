@@ -15,27 +15,29 @@ mvn clean test
 ```
 
 The suite verifies all application contexts, gateway forwarding, public-prefix
-removal, unknown-route handling, Identity Service OAuth2 behavior, and real
-RSA-signed JWT validation at the Gateway.
+removal, unknown-route handling, Identity Service OAuth2 behavior, real
+RSA-signed JWT validation at the Gateway, Knowledge Service authorization
+policy, and Knowledge Service unit behavior. The current baseline is 22 passing
+tests.
 
 ## Start the applications
 
-Start the Knowledge Service:
+Start the Identity Service:
+
+```bash
+mvn -pl identity-service spring-boot:run
+```
+
+In another terminal, start the Knowledge Service:
 
 ```bash
 mvn -pl knowledge-service spring-boot:run
 ```
 
-In another terminal, start the API Gateway:
+In a third terminal, start the API Gateway:
 
 ```bash
 mvn -pl api-gateway spring-boot:run
-```
-
-In a third terminal, start the Identity Service:
-
-```bash
-mvn -pl identity-service spring-boot:run
 ```
 
 ## Manual verification
@@ -93,7 +95,15 @@ TOKEN=$(curl -s \
   | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
 ```
 
-Call the protected Gateway route:
+Call the protected Knowledge Service directly:
+
+```bash
+curl -i \
+  -H "Authorization: Bearer $TOKEN" \
+  http://localhost:8081/api/v1/platform/info
+```
+
+Call the same protected endpoint through the Gateway:
 
 ```bash
 curl -i \
@@ -109,10 +119,18 @@ Verify the failure paths:
 # Missing token: HTTP 401
 curl -i http://localhost:8080/knowledge/api/v1/platform/info
 
+# Missing token at the Knowledge Service: HTTP 401
+curl -i http://localhost:8081/api/v1/platform/info
+
 # Malformed token: HTTP 401
 curl -i \
   -H "Authorization: Bearer invalid-token" \
   http://localhost:8080/knowledge/api/v1/platform/info
+
+# Malformed token at the Knowledge Service: HTTP 401
+curl -i \
+  -H "Authorization: Bearer invalid-token" \
+  http://localhost:8081/api/v1/platform/info
 
 # Unknown route: HTTP 404
 curl -i http://localhost:8080/unknown
@@ -135,7 +153,9 @@ $env:PLATFORM_CLIENT_SECRET="{noop}replace-this-secret"
 The `{noop}` prefix is accepted for local development only. Production
 credentials must use secure secret storage and an appropriate password encoder.
 
-## Override the Gateway identity configuration
+## Override resource-server identity configuration
+
+Both the API Gateway and Knowledge Service use these variables:
 
 Git Bash:
 
